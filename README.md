@@ -1,15 +1,15 @@
 # Game Boy Emulator
 
-An experimental Game Boy emulator written in C with SDL2-based rendering and input handling. The project is organized as a small CMake build with a reusable static emulator library, a runnable front-end, and a Check-based test target.
+This is a Game Boy emulator written in C. It uses SDL2 for the window, rendering, and keyboard input, and it is built with CMake as a small library-plus-front-end project.
 
 ## Features
 
 - CPU, cartridge, bus, timer, DMA, interrupt, LCD, and PPU subsystems
-- SDL2 windowed rendering of the Game Boy framebuffer
+- SDL2 rendering of the Game Boy framebuffer in a desktop window
 - SDL2_ttf support for the UI layer
 - Keyboard input mapped to the Game Boy joypad
-- A separate debug window that renders a tile-viewer style view of VRAM contents
-- Basic unit test target built with Check
+- A separate debug window that shows a tile-view of VRAM contents
+- A small Check-based test target
 
 ## Repository Layout
 
@@ -32,7 +32,7 @@ An experimental Game Boy emulator written in C with SDL2-based rendering and inp
 
 ### Linux and other Unix-like systems
 
-The top-level CMake files call `find_package(SDL2 REQUIRED)` and `find_package(SDL2_ttf REQUIRED)`, so those packages must be installed in a way CMake can discover them.
+The top-level CMake files call `find_package(SDL2 REQUIRED)` and `find_package(SDL2_ttf REQUIRED)`, so those packages need to be installed in a way CMake can discover them.
 
 The test target also uses Check, so the Check development package must be available.
 
@@ -44,7 +44,7 @@ The build expects dependency folders next to the repository root:
 - `../windows_deps/sdl2_ttf`
 - `../windows_deps/check`
 
-The Windows build copies the SDL2 and SDL2_ttf runtime DLLs into the executable directory after build.
+The Windows build copies the SDL2 and SDL2_ttf runtime DLLs into the executable directory after the build finishes.
 
 ## Build
 
@@ -71,6 +71,14 @@ On Windows, the executable is built in the CMake output directory, so run the ge
 
 At startup the emulator opens the main display window and a separate debug window. If the ROM cannot be loaded, the process exits with an error.
 
+## How It Works
+
+The entry point is a small command-line wrapper in `gbemu/main.c`. It passes the ROM path to the emulator runtime in `lib/emu.c`, which loads the cartridge, starts SDL, and creates the main CPU thread.
+
+From there the CPU runs the emulation loop while the UI thread handles SDL events. Each CPU step drives the rest of the machine through the bus: memory reads and writes flow into the cartridge, RAM, timer, DMA, LCD, and PPU layers as needed. The PPU builds the framebuffer one scanline at a time, and the UI copies that framebuffer to the screen.
+
+Keyboard input is translated into Game Boy button state in the SDL event handler. The `Z` and `X` keys map to the B and A buttons, arrow keys map to the D-pad, and `Enter` and `Tab` map to Start and Select.
+
 ## Controls
 
 Keyboard input is mapped as follows:
@@ -93,7 +101,7 @@ ctest --test-dir build
 
 The current test coverage is intentionally small and includes a smoke test around CPU stepping.
 
-## Architecture Overview
+## Architecture
 
 The runtime is split into a small set of cooperating components:
 
